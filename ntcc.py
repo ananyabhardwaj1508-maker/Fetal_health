@@ -25,7 +25,7 @@ st.title("🧠 Fetal Health Prediction Dashboard (ANN, Deep NN, RNN)")
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"C:\Users\HP\Downloads\fetal_health.csv")
+    df = pd.read_csv("fetal_health.csv")
     X = df.drop("fetal_health", axis=1)
     y = tf.keras.utils.to_categorical(df["fetal_health"] - 1)
     y_labels = df["fetal_health"]
