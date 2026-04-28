@@ -396,11 +396,11 @@ with tabs[4]:
     ax.legend()
     st.pyplot(fig_loss)
     st.markdown("""
-<hr style="margin-top:50px;">
-<div style="text-align: center; color: grey; font-size: 14px;">
+    <hr style="margin-top:50px;">
+    <div style="text-align: center; color: grey; font-size: 14px;">
     👩‍💻 Developed by <b>Ananya Bhardwaj</b><br>
     📧 ananyabhardwaj1508@gmail.com
-</div>
-""", unsafe_allow_html=True)
+    </div>
+##""", unsafe_allow_html=True)
 
 
