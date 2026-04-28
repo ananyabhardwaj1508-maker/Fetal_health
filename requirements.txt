@@ -5,7 +5,7 @@ matplotlib
 seaborn
 scikit-learn
 tensorflow==2.16.1
-shap
+xgboost==1.7.6
+shap==0.41.0
 lime
-xgboost
 setuptools
