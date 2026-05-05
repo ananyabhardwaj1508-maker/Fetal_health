@@ -129,18 +129,19 @@ with tabs[0]:
         st.success(f"Predicted Fetal Health Class: {predicted_class} - {predicted_label}")
         st.info(f"Features used: {list(feature_set)}")
 
-        if model_choice != "RNN":
-            st.subheader("SHAP Explanation (Bar Plot of All Features)")
+      if model_choice != "RNN":
+            st.subheader("SHAP Explanation")
 
-            background_data = X_train_selected if use_top5 else X_train_scaled
-            input_features = list(selected_features) if use_top5 else list(X.columns)
-            background_sample = background_data[np.random.choice(background_data.shape[0], 100, replace=False)]
+            background = X_train_selected if use_top5 else X_train_scaled
+            background_sample = shap.sample(background, 50)
 
-            explainer = shap.DeepExplainer(selected_model, background_sample)
-            shap_values = explainer.shap_values(scaled_input)
+            explainer = shap.Explainer(selected_model.predict, background_sample)
+            shap_values = explainer(scaled_input)
 
-            fig, ax = plt.subplots(figsize=(10, max(4, len(input_features) * 0.4)))
-            shap.bar_plot(shap_values[predicted_index][0], feature_names=input_features, max_display=len(input_features), show=False)
+            shap_vals = shap_values.values[0][:, predicted_index]
+
+            fig, ax = plt.subplots(figsize=(10, 4))
+            shap.bar_plot(shap_vals, feature_names=list(feature_set), show=False)
             st.pyplot(fig)
 
         st.subheader("LIME Explanation")
