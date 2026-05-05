@@ -6,6 +6,6 @@ seaborn
 scikit-learn
 tensorflow==2.16.1
 xgboost==1.7.6
-shap==0.41.0
+shap>=0.42.1
 lime
 setuptools
