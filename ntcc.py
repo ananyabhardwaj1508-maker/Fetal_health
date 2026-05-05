@@ -1,26 +1,19 @@
 import warnings
 warnings.filterwarnings("ignore")
-
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # Use non-interactive backend for SHAP + Streamlit
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, label_binarize
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc, accuracy_score
 from sklearn.feature_selection import SelectKBest, f_classif
-
 import tensorflow as tf
 import shap
-
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
@@ -58,7 +51,6 @@ selected_features = X.columns[selected_indices]
 
 X_train_selected = X_train_scaled[:, selected_indices]
 X_test_selected = X_test_scaled[:, selected_indices]
-
 X_train_rnn_selected = X_train_selected.reshape(X_train_selected.shape[0], 1, X_train_selected.shape[1])
 X_test_rnn_selected = X_test_selected.reshape(X_test_selected.shape[0], 1, X_test_selected.shape[1])
 
@@ -91,17 +83,10 @@ def build_and_train_models(X_train_fs, X_train_rnn_fs):
 
     return ann, deep_nn, rnn, ann_history, deep_history, rnn_history
 
-ann_model, deep_model, rnn_model, ann_hist, deep_hist, rnn_hist = build_and_train_models(
-    X_train_selected, X_train_rnn_selected
-)
-
-ann_full, deep_full, rnn_full, ann_hist_full, deep_hist_full, rnn_hist_full = build_and_train_models(
-    X_train_scaled,
-    X_train_scaled.reshape(X_train_scaled.shape[0], 1, X_train_scaled.shape[1])
-)
+ann_model, deep_model, rnn_model, ann_hist, deep_hist, rnn_hist = build_and_train_models(X_train_selected, X_train_rnn_selected)
+ann_full, deep_full, rnn_full, ann_hist_full, deep_hist_full, rnn_hist_full = build_and_train_models(X_train_scaled, X_train_scaled.reshape(X_train_scaled.shape[0], 1, X_train_scaled.shape[1]))
 
 tabs = st.tabs(["🔍 Prediction", "📊 EDA", "📈 Evaluation", "📉 Feature Importance", "📉 Training Curves"])
-
 # -------------------- Prediction Tab --------------------
 with tabs[0]:
     st.header("Make a Prediction")
@@ -109,74 +94,66 @@ with tabs[0]:
     use_top5 = st.toggle("Use Top 5 Selected Features", value=True)
     feature_set = selected_features if use_top5 else X.columns
     selected_model_set = (ann_model, deep_model, rnn_model) if use_top5 else (ann_full, deep_full, rnn_full)
-
     model_choice = st.radio("Select a Model", ["ANN", "Deep NN", "RNN"], key="predict")
-    selected_model = {
-        "ANN": selected_model_set[0],
-        "Deep NN": selected_model_set[1],
-        "RNN": selected_model_set[2]
-    }[model_choice]
+    selected_model = {"ANN": selected_model_set[0], "Deep NN": selected_model_set[1], "RNN": selected_model_set[2]}[model_choice]
 
     with st.form("prediction_form"):
         input_data = {}
         for col in X.columns:
+            min_val = float(df[col].min())
+            max_val = float(df[col].max())
+            mean_val = float(df[col].mean())
             input_data[col] = st.number_input(
-                col,
-                float(df[col].min()),
-                float(df[col].max()),
-                float(df[col].mean())
+                f"{col}",
+                min_value=min_val,
+                max_value=max_val,
+                value=mean_val,
+                step=0.01,
+                format="%.2f"
             )
         submitted = st.form_submit_button("Predict")
 
     if submitted:
         input_array = np.array([list(input_data.values())])
         scaled_input = scaler.transform(input_array)
-
         if use_top5:
             scaled_input = scaled_input[:, selected_indices]
-
         input_for_model = scaled_input.reshape(1, 1, -1) if model_choice == "RNN" else scaled_input
 
         prediction = selected_model.predict(input_for_model)
         predicted_index = np.argmax(prediction)
-
+        predicted_class = predicted_index + 1
         class_labels = {0: "Normal", 1: "Suspect", 2: "Pathological"}
-        st.success(f"Predicted Class: {class_labels[predicted_index]}")
+        predicted_label = class_labels[predicted_index]
 
-        # ✅ FIXED SHAP
+        st.success(f"Predicted Fetal Health Class: {predicted_class} - {predicted_label}")
+        st.info(f"Features used: {list(feature_set)}")
+
         if model_choice != "RNN":
-            st.subheader("SHAP Explanation")
+            st.subheader("SHAP Explanation (Bar Plot of All Features)")
 
             background_data = X_train_selected if use_top5 else X_train_scaled
-            input_features = list(feature_set)
+            input_features = list(selected_features) if use_top5 else list(X.columns)
+            background_sample = background_data[np.random.choice(background_data.shape[0], 100, replace=False)]
 
-            background_sample = shap.sample(background_data, 50)
+            explainer = shap.DeepExplainer(selected_model, background_sample)
+            shap_values = explainer.shap_values(scaled_input)
 
-            explainer = shap.Explainer(selected_model.predict, background_sample)
-            shap_values = explainer(scaled_input)
-
-            shap_vals = shap_values.values[0][:, predicted_index]
-
-            fig, ax = plt.subplots(figsize=(10, 4))
-            shap.bar_plot(shap_vals, feature_names=input_features, show=False)
-
+            fig, ax = plt.subplots(figsize=(10, max(4, len(input_features) * 0.4)))
+            shap.bar_plot(shap_values[predicted_index][0], feature_names=input_features, max_display=len(input_features), show=False)
             st.pyplot(fig)
 
-        # LIME unchanged
         st.subheader("LIME Explanation")
-
         lime_explainer = LimeTabularExplainer(
             training_data=X_train_selected if use_top5 else X_train_scaled,
             feature_names=list(feature_set),
             class_names=["Normal", "Suspect", "Pathological"],
+            discretize_continuous=True,
             mode='classification'
         )
-
-        lime_model = selected_model.predict if model_choice != "RNN" else \
-            lambda x: selected_model.predict(x.reshape(x.shape[0], 1, x.shape[1]))
-
+        lime_model = selected_model.predict if model_choice != "RNN" else lambda x: selected_model.predict(x.reshape(x.shape[0], 1, x.shape[1]))
         lime_exp = lime_explainer.explain_instance(scaled_input[0], lime_model, num_features=5)
-        st.components.v1.html(lime_exp.as_html(), height=600)
+        st.components.v1.html(lime_exp.as_html(), height=600, scrolling=True)
 
 # -------------------- EDA Tab --------------------
 with tabs[1]:
@@ -418,6 +395,5 @@ with tabs[4]:
     ax.set_ylabel("Loss")
     ax.legend()
     st.pyplot(fig_loss)
-
 
 
