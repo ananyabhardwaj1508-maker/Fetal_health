@@ -21,7 +21,7 @@ from sklearn.cluster import DBSCAN
 from xgboost import XGBClassifier
 
 st.set_page_config(layout="wide")
-st.title("🧠 Fetal Health Prediction Dashboard (ANN, Deep NN, RNN)")
+st.title("🧠 FRAT: Fetal Risk Assessment Tool")
 
 @st.cache_data
 def load_data():
@@ -86,7 +86,14 @@ def build_and_train_models(X_train_fs, X_train_rnn_fs):
 ann_model, deep_model, rnn_model, ann_hist, deep_hist, rnn_hist = build_and_train_models(X_train_selected, X_train_rnn_selected)
 ann_full, deep_full, rnn_full, ann_hist_full, deep_hist_full, rnn_hist_full = build_and_train_models(X_train_scaled, X_train_scaled.reshape(X_train_scaled.shape[0], 1, X_train_scaled.shape[1]))
 
-tabs = st.tabs(["🔍 Prediction", "📊 EDA", "📈 Evaluation", "📉 Feature Importance", "📉 Training Curves"])
+tabs = st.tabs([
+    "🔍 Prediction",
+    "📊 EDA",
+    "📈 Evaluation",
+    "📉 Feature Importance",
+    "📉 Training Curves",
+    "📞 Contact Us"
+])
 # -------------------- Prediction Tab --------------------
 with tabs[0]:
     st.header("Make a Prediction")
@@ -396,4 +403,40 @@ with tabs[4]:
     ax.legend()
     st.pyplot(fig_loss)
 
+# -------------------- CONTACT US TAB --------------------
+with tabs[5]:
+    st.header("📞 Contact Us")
 
+    st.markdown("### 👩‍💻 Student Details")
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.image("ananya image.jpeg", width=180)  # 👉 Replace with your image path
+
+    with col2:
+        st.markdown("""
+        **Name:** ANANYA BHARDWAJ  
+        **Course:** BTech Biotechnology  
+        **Email:** ananyabhardwaj1508@gmail.com  
+        **LinkedIn:** [View Profile](https://www.linkedin.com/in/ananya-bhardwaj-9383703a1)
+        """)
+
+    st.markdown("---")
+
+    st.markdown("### 👩‍🏫 Guide Details")
+
+    col3, col4 = st.columns([1, 3])
+
+    with col3:
+        st.image("ritu maam image.png", width=180)  # 👉 Replace with guide image path
+
+    with col4:
+        st.markdown("""
+        **Name:** Dr. RITU CHAUHAN  
+        **Designation:** Head of Department of Bioinformatics  
+        **University:** Amity University Noida  
+        **Institute:** Amity Institute Of Biotechnology  
+        **Lab:** AI and IOT Automation Lab  
+        **Email:** rituchauhanuts@gmail.com  
+        """)
