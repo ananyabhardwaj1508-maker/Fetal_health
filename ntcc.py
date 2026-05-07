@@ -83,6 +83,26 @@ def build_and_train_models(X_train_fs, X_train_rnn_fs):
 
     return ann, deep_nn, rnn, ann_history, deep_history, rnn_history
 
+
+def get_shap_values_for_class(shap_values, cls_idx):
+    if isinstance(shap_values, np.ndarray):
+        if shap_values.ndim == 3:
+            selected = shap_values[0, :, cls_idx] if shap_values.shape[0] == 1 else shap_values[:, :, cls_idx]
+            return selected
+        if shap_values.ndim == 2:
+            if shap_values.shape[0] == 1:
+                return shap_values[0]
+            if shap_values.shape[1] > cls_idx:
+                return shap_values[:, cls_idx]
+            return shap_values
+    if isinstance(shap_values, list):
+        selected = shap_values[cls_idx]
+        if isinstance(selected, np.ndarray) and selected.ndim == 2 and selected.shape[0] == 1:
+            return selected[0]
+        return selected
+    return shap_values
+
+
 ann_model, deep_model, rnn_model, ann_hist, deep_hist, rnn_hist = build_and_train_models(X_train_selected, X_train_rnn_selected)
 ann_full, deep_full, rnn_full, ann_hist_full, deep_hist_full, rnn_hist_full = build_and_train_models(X_train_scaled, X_train_scaled.reshape(X_train_scaled.shape[0], 1, X_train_scaled.shape[1]))
 
@@ -146,9 +166,11 @@ with tabs[0]:
             explainer = shap.DeepExplainer(selected_model, background_sample)
             shap_values = explainer.shap_values(scaled_input)
 
+            shap_pred_values = get_shap_values_for_class(shap_values, predicted_index)
             fig, ax = plt.subplots(figsize=(10, max(4, len(input_features) * 0.4)))
-            shap.bar_plot(shap_values[predicted_index][0], feature_names=input_features, max_display=len(input_features), show=False)
+            shap.bar_plot(shap_pred_values, feature_names=input_features, max_display=len(input_features), show=False)
             st.pyplot(fig)
+            plt.close(fig)
 
         st.subheader("LIME Explanation")
         lime_explainer = LimeTabularExplainer(
@@ -292,6 +314,7 @@ with tabs[3]:
         label.set_x(-0.02)
     plt.subplots_adjust(left=0.3)
     st.pyplot(plt.gcf())
+    plt.close()
 
     # XGBoost
     st.subheader("XGBoost Feature Importances")
@@ -324,6 +347,7 @@ with tabs[3]:
         label.set_x(-0.02)
     plt.subplots_adjust(left=0.3)
     st.pyplot(plt.gcf())
+    plt.close()
 
     # PCA
     st.subheader("PCA: Principal Component Analysis")
@@ -412,7 +436,7 @@ with tabs[5]:
     col1, col2 = st.columns([1, 3])
 
     with col1:
-        st.image("ananya image.jpeg", width=180)  # 👉 Replace with your image path
+        st.image("ananya image.jpeg", width=360)  # 👉 Replace with your image path
 
     with col2:
         st.markdown("""
